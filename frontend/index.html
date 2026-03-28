@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HealthCheck AI — Know Your Risk</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={darkMode:"class",theme:{extend:{colors:{
+"surface-lowest":"#060d20","surface":"#0b1326","surface-low":"#131b2e",
+"surface-mid":"#171f33","surface-high":"#222a3e","surface-highest":"#2d3449",
+"primary":"#8aebff","primary-dim":"#22d3ee","on-primary":"#00363e",
+"secondary":"#ffc640","on-surface":"#dbe2fd","on-muted":"#bbc9cd",
+"outline":"#3c494c","error":"#ffb4ab","error-bg":"#93000a",
+"success":"#4ade80","warn":"#ffc640"},
+fontFamily:{sans:["Inter"]},
+borderRadius:{"DEFAULT":"0px","lg":"0px","xl":"0px","full":"9999px"}}}}
+</script>
+<style>
+*{box-sizing:border-box}
+.ms{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;font-family:'Material Symbols Outlined'}
+body{background:#0b1326;color:#dbe2fd;font-family:'Inter',sans-serif;margin:0}
+.vg{background:linear-gradient(135deg,#8aebff,#22d3ee)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#0b1326}
+::-webkit-scrollbar-thumb{background:#3c494c}
+.page{display:none}.page.active{display:block}
+.nl{cursor:pointer;transition:all .15s;user-select:none}
+.nl.active{color:#8aebff!important;background:#222a3e!important;border-right:2px solid #8aebff}
+.nl:not(.active):hover{color:#dbe2fd!important;background:#1a2236!important}
+input[type=number],input[type=text],select{
+  background:#060d20!important;color:#dbe2fd!important;
+  border:none!important;border-bottom:1px solid #3c494c!important;
+  outline:none!important;border-radius:0!important;padding:8px 0!important;
+  width:100%;font-size:14px;font-family:'Inter',sans-serif}
+input:focus,select:focus{border-bottom-color:#8aebff!important}
+select option{background:#131b2e;color:#dbe2fd}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 2s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .8s linear infinite}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .4s ease forwards}
+.drop-zone{border:1px dashed #3c494c;transition:all .2s;cursor:pointer}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#8aebff;background:#8aebff08}
+.tab-btn{cursor:pointer;padding:8px 16px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .15s;color:#bbc9cd}
+.tab-btn.active{color:#8aebff;border-bottom-color:#8aebff}
+</style>
+</head>
+<body class="selection:bg-[#8aebff] selection:text-[#00363e]" style="overflow:hidden">
+
+<!-- ═══ SIDE NAV ═══ -->
+<nav class="fixed left-0 top-0 h-full flex flex-col w-64 bg-[#131b2e] border-r border-[#3c494c]/15 z-50">
+  <div class="p-6 flex items-center gap-3">
+    <div class="w-9 h-9 vg flex items-center justify-center flex-shrink-0">
+      <span class="ms text-[#00363e]" style="font-variation-settings:'FILL' 1;font-size:20px">favorite</span>
+    </div>
+    <div>
+      <h1 class="text-[#8aebff] font-black tracking-tighter text-base uppercase leading-none">HealthCheck AI</h1>
+      <p class="text-[10px] text-[#bbc9cd] mt-0.5">Your personal health risk tool</p>
+    </div>
+  </div>
+
+  <div class="flex-1 px-3 space-y-0.5 mt-2">
+    <div onclick="nav('home')" id="n-home" class="nl active flex items-center gap-3 px-4 py-3 text-[#8aebff] text-sm font-medium">
+      <span class="ms">home</span><span>Home</span>
+    </div>
+    <div onclick="nav('check')" id="n-check" class="nl flex items-center gap-3 px-4 py-3 text-[#bbc9cd] text-sm font-medium">
+      <span class="ms">health_metrics</span><span>Check My Risk</span>
+    </div>
+    <div onclick="nav('upload')" id="n-upload" class="nl flex items-center gap-3 px-4 py-3 text-[#bbc9cd] text-sm font-medium">
+      <span class="ms">upload_file</span><span>Upload Documents</span>
+    </div>
+    <div onclick="nav('history')" id="n-history" class="nl flex items-center gap-3 px-4 py-3 text-[#bbc9cd] text-sm font-medium">
+      <span class="ms">history</span><span>My History</span>
+    </div>
+    <div onclick="nav('about')" id="n-about" class="nl flex items-center gap-3 px-4 py-3 text-[#bbc9cd] text-sm font-medium">
+      <span class="ms">info</span><span>About This Tool</span>
+    </div>
+  </div>
+
+  <div class="p-4 border-t border-[#3c494c]/15">
+    <div class="flex items-center gap-3 px-3 py-3">
+      <div class="w-9 h-9 bg-[#2d3449] flex items-center justify-center flex-shrink-0">
+        <span class="ms text-[#8aebff]" style="font-size:18px">person</span>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-[#dbe2fd]" id="user-name">My Profile</p>
+        <p class="text-[9px] text-[#bbc9cd]" id="user-sub">Health Risk Tracker</p>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ TOP BAR ═══ -->
+<header class="fixed top-0 right-0 left-64 flex items-center justify-between px-6 z-40 h-12 bg-[#0b1326] border-b border-[#3c494c]/15">
+  <div class="flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-[#ffc640] pulse" id="hdr-dot"></span>
+    <span class="text-[9px] text-[#ffc640] font-bold uppercase tracking-wider" id="hdr-status">Connecting...</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-[9px] text-[#bbc9cd]" id="hdr-time"></span>
+    <div class="flex items-center gap-1 text-[9px] text-[#bbc9cd] border border-[#3c494c]/30 px-2 py-1">
+      <span class="ms text-[10px] text-[#ffc640]">info</span>
+      <span class="font-bold uppercase tracking-wider">For informational use only</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="pl-64 pt-12 pb-12 overflow-y-auto" style="height:100vh">
+
+<!-- ═══════════ HOME ═══════════ -->
+<div id="page-home" class="page active p-6 space-y-6 fade-in">
+  <!-- Hero -->
+  <div class="bg-[#131b2e] p-8 border-l-4 border-[#8aebff]">
+    <div class="flex items-start justify-between gap-6">
+      <div class="space-y-3">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#8aebff]">AI-Powered Health Risk Assessment</p>
+        <h2 class="text-3xl font-black tracking-tighter text-[#dbe2fd] leading-tight">Understand your<br>health risk today.</h2>
+        <p class="text-sm text-[#bbc9cd] leading-relaxed max-w-lg">Get a personalized heart disease or diabetes risk assessment in minutes. Enter your health numbers or upload your medical documents — our AI does the rest.</p>
+        <div class="flex gap-3 pt-2">
+          <button onclick="nav('check')" class="px-5 py-2.5 vg text-[#00363e] font-black text-sm uppercase tracking-wider flex items-center gap-2">
+            <span class="ms text-base">health_metrics</span> Check My Risk
+          </button>
+          <button onclick="nav('upload')" class="px-5 py-2.5 border border-[#8aebff]/30 text-[#8aebff] font-bold text-sm uppercase tracking-wider flex items-center gap-2 hover:bg-[#8aebff]/10 transition-colors">
+            <span class="ms text-base">upload_file</span> Upload Documents
+          </button>
+        </div>
+      </div>
+      <div class="hidden lg:flex flex-col items-center gap-2 flex-shrink-0">
+        <div class="w-24 h-24 vg flex items-center justify-center">
+          <span class="ms text-[#00363e]" style="font-variation-settings:'FILL' 1;font-size:48px">favorite</span>
+        </div>
+        <p class="text-[9px] text-[#bbc9cd] uppercase tracking-widest text-center">AI Health<br>Assistant</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disclaimer Banner -->
+  <div class="bg-[#93000a]/15 border border-[#ffb4ab]/20 p-4 flex items-start gap-3">
+    <span class="ms text-[#ffb4ab] mt-0.5" style="font-variation-settings:'FILL' 1">warning</span>
+    <div>
+      <p class="text-[10px] font-bold uppercase tracking-wider text-[#ffb4ab] mb-1">Important Notice</p>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">This tool provides health risk estimates only — it is <strong class="text-[#dbe2fd]">not a medical diagnosis</strong>. Always consult a qualified doctor before making any health decisions. Results are for informational purposes only.</p>
+    </div>
+  </div>
+
+  <!-- Feature Cards -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div onclick="nav('check')" class="bg-[#171f33] p-5 cursor-pointer hover:bg-[#1e2840] transition-colors group">
+      <div class="w-10 h-10 vg flex items-center justify-center mb-4">
+        <span class="ms text-[#00363e]" style="font-variation-settings:'FILL' 1">health_metrics</span>
+      </div>
+      <h3 class="font-bold text-[#dbe2fd] mb-2">Check Your Risk</h3>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">Enter your health numbers like blood pressure, cholesterol, and glucose to get an instant AI risk assessment.</p>
+      <div class="flex items-center gap-1 mt-3 text-[#8aebff] text-[10px] font-bold uppercase">
+        <span>Get Started</span><span class="ms text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </div>
+    <div onclick="nav('upload')" class="bg-[#171f33] p-5 cursor-pointer hover:bg-[#1e2840] transition-colors group">
+      <div class="w-10 h-10 bg-[#ffc640]/20 flex items-center justify-center mb-4">
+        <span class="ms text-[#ffc640]" style="font-variation-settings:'FILL' 1">upload_file</span>
+      </div>
+      <h3 class="font-bold text-[#dbe2fd] mb-2">Upload Documents</h3>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">Upload your lab reports, CT scans, ECG results, or any medical document. Our AI reads and extracts your health data automatically.</p>
+      <div class="flex items-center gap-1 mt-3 text-[#ffc640] text-[10px] font-bold uppercase">
+        <span>Upload Now</span><span class="ms text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </div>
+    <div onclick="nav('history')" class="bg-[#171f33] p-5 cursor-pointer hover:bg-[#1e2840] transition-colors group">
+      <div class="w-10 h-10 bg-[#4ade80]/20 flex items-center justify-center mb-4">
+        <span class="ms text-[#4ade80]" style="font-variation-settings:'FILL' 1">history</span>
+      </div>
+      <h3 class="font-bold text-[#dbe2fd] mb-2">My History</h3>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">View all your past health checks in one place. Track how your risk level changes over time.</p>
+      <div class="flex items-center gap-1 mt-3 text-[#4ade80] text-[10px] font-bold uppercase">
+        <span>View History</span><span class="ms text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-[#131b2e] p-4 text-center">
+      <div class="text-2xl font-black text-[#8aebff]" id="home-total">—</div>
+      <div class="text-[9px] text-[#bbc9cd] uppercase tracking-wider mt-1">Checks Completed</div>
+    </div>
+    <div class="bg-[#131b2e] p-4 text-center">
+      <div class="text-2xl font-black text-[#ffc640]">97%</div>
+      <div class="text-[9px] text-[#bbc9cd] uppercase tracking-wider mt-1">AI Sensitivity</div>
+    </div>
+    <div class="bg-[#131b2e] p-4 text-center">
+      <div class="text-2xl font-black text-[#4ade80]">3</div>
+      <div class="text-[9px] text-[#bbc9cd] uppercase tracking-wider mt-1">AI Models Used</div>
+    </div>
+    <div class="bg-[#131b2e] p-4 text-center">
+      <div class="text-2xl font-black text-[#dbe2fd]">Free</div>
+      <div class="text-[9px] text-[#bbc9cd] uppercase tracking-wider mt-1">Always Free</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CHECK MY RISK ═══════════ -->
+<div id="page-check" class="page p-6 space-y-6">
+  <div class="flex justify-between items-end border-b border-[#3c494c]/15 pb-4">
+    <div>
+      <h2 class="text-2xl font-black tracking-tighter">Check My Health Risk</h2>
+      <p class="text-xs text-[#bbc9cd] mt-0.5">Fill in your health numbers below — all from your last doctor visit or home test</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="setDisease('heart_disease')" id="btn-heart" class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider vg text-[#00363e]">❤️ Heart Disease</button>
+      <button onclick="setDisease('diabetes')" id="btn-diab" class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider border border-[#3c494c]/40 text-[#bbc9cd] hover:border-[#8aebff]/30 hover:text-[#dbe2fd] transition-colors">🩸 Diabetes</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-6">
+    <!-- Form Panel -->
+    <div class="col-span-12 lg:col-span-5 space-y-5">
+      <div class="bg-[#171f33] p-5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#8aebff] mb-4">About You</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Your Age</label>
+            <input type="number" id="f-age" placeholder="e.g. 45"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Biological Sex</label>
+            <select id="f-sex"><option value="1">Male</option><option value="0">Female</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heart Disease Fields -->
+      <div id="heart-fields" class="bg-[#171f33] p-5 space-y-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#8aebff]">Heart Health Numbers</p>
+        <p class="text-[10px] text-[#bbc9cd]">These values come from a standard blood test or ECG. Ask your doctor if unsure.</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Blood Pressure (mmHg) <span class="text-[#3c494c]">e.g. 130</span></label>
+            <input type="number" id="f-rbp" placeholder="e.g. 130"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Cholesterol (mg/dL) <span class="text-[#3c494c]">e.g. 200</span></label>
+            <input type="number" id="f-chol" placeholder="e.g. 200"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Max Heart Rate (bpm)</label>
+            <input type="number" id="f-mhr" placeholder="e.g. 150"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Chest Pain Type (0–3)</label>
+            <input type="number" id="f-cp" placeholder="0–3" min="0" max="3"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">ST Depression</label>
+            <input type="number" id="f-std" placeholder="e.g. 1.5" step="0.1"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Major Vessels (0–4)</label>
+            <input type="number" id="f-ca" placeholder="0–4" min="0" max="4"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Thal Value (0–3)</label>
+            <input type="number" id="f-thal" placeholder="0–3" min="0" max="3"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Pain during exercise?</label>
+            <select id="f-exang"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Fasting sugar &gt;120?</label>
+            <select id="f-fbs"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Resting ECG (0–2)</label>
+            <input type="number" id="f-recg" placeholder="0–2" min="0" max="2"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">ST Slope (0–2)</label>
+            <input type="number" id="f-slope" placeholder="0–2" min="0" max="2"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diabetes Fields -->
+      <div id="diabetes-fields" class="hidden bg-[#171f33] p-5 space-y-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#8aebff]">Diabetes Health Numbers</p>
+        <p class="text-[10px] text-[#bbc9cd]">These values come from a standard blood test. Ask your doctor if unsure.</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Blood Sugar (mg/dL)</label>
+            <input type="number" id="f-gluc" placeholder="e.g. 120"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">BMI (kg/m²)</label>
+            <input type="number" id="f-bmi" placeholder="e.g. 28.5" step="0.1"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Blood Pressure</label>
+            <input type="number" id="f-bp" placeholder="e.g. 72"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Insulin Level</label>
+            <input type="number" id="f-ins" placeholder="e.g. 80"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Skin Thickness (mm)</label>
+            <input type="number" id="f-skin" placeholder="e.g. 25"/>
+          </div>
+          <div>
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Pregnancies</label>
+            <input type="number" id="f-preg" placeholder="e.g. 2" min="0"/>
+          </div>
+          <div class="col-span-2">
+            <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-1">Diabetes Family History Score</label>
+            <input type="number" id="f-dpf" placeholder="e.g. 0.5" step="0.01"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="form-error" class="hidden bg-[#93000a]/20 border border-[#ffb4ab]/20 p-3 text-[11px] text-[#ffb4ab] leading-relaxed"></div>
+
+      <button onclick="submitPrediction()" id="submit-btn" class="w-full py-3.5 vg text-[#00363e] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+        <span class="ms text-base" id="submit-icon">health_metrics</span>
+        <span id="submit-label">Get My Risk Assessment</span>
+      </button>
+
+      <p class="text-[9px] text-[#3c494c] text-center">Your data is not stored or shared. Results are for informational use only.</p>
+    </div>
+
+    <!-- Result Panel -->
+    <div class="col-span-12 lg:col-span-7">
+      <div id="result-placeholder" class="bg-[#171f33] flex flex-col items-center justify-center p-16 text-center" style="min-height:500px">
+        <span class="ms text-5xl text-[#3c494c] mb-4" style="font-variation-settings:'FILL' 1">health_metrics</span>
+        <p class="text-sm font-bold text-[#bbc9cd]">Your results will appear here</p>
+        <p class="text-[10px] text-[#3c494c] mt-2">Fill in your health numbers and tap "Get My Risk Assessment"</p>
+        <p class="text-[10px] text-[#3c494c] mt-1">Or <button onclick="nav('upload')" class="text-[#8aebff] underline cursor-pointer bg-transparent border-none">upload your medical documents</button> to auto-fill</p>
+      </div>
+
+      <div id="result-card" class="hidden space-y-4 fade-in">
+        <!-- Risk Banner -->
+        <div id="risk-banner" class="p-6 border-l-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 flex items-center justify-center flex-shrink-0" id="risk-icon-wrap">
+                <span class="ms text-4xl" id="risk-icon" style="font-variation-settings:'FILL' 1">favorite</span>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase tracking-widest text-[#bbc9cd]">Your <span id="risk-disease">—</span> Risk</p>
+                <p class="text-3xl font-black tracking-tighter mt-0.5" id="risk-label">—</p>
+                <p class="text-[9px] text-[#bbc9cd] font-mono mt-1">Reference ID: <span id="risk-pid">—</span></p>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-[9px] uppercase tracking-widest text-[#bbc9cd]">Risk Score</p>
+              <p class="text-4xl font-black tracking-tighter mt-0.5" id="risk-prob">—</p>
+              <div class="text-[9px] mt-1 px-2 py-0.5 border inline-block" id="risk-conf">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk Gauge -->
+        <div class="bg-[#171f33] p-5">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-[#bbc9cd] mb-3">Where You Stand</p>
+          <div class="flex justify-between text-[9px] text-[#bbc9cd] mb-2"><span>Low Risk</span><span>Moderate</span><span>High Risk</span></div>
+          <div class="w-full bg-[#060d20] h-4 relative">
+            <div class="absolute left-0 top-0 h-full bg-[#4ade80]/25" style="width:30%"></div>
+            <div class="absolute top-0 h-full bg-[#ffc640]/25" style="left:30%;width:30%"></div>
+            <div class="absolute top-0 h-full bg-[#ffb4ab]/25" style="left:60%;width:40%"></div>
+            <div class="absolute top-0 h-4 w-1 bg-white transition-all duration-700 shadow-lg" id="prob-needle" style="left:0%"></div>
+          </div>
+          <div class="flex justify-between text-[8px] text-[#3c494c] mt-1"><span>0%</span><span>30%</span><span>60%</span><span>100%</span></div>
+        </div>
+
+        <!-- Key Factors -->
+        <div class="bg-[#171f33] p-5">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-[#bbc9cd] mb-4">Key Factors in Your Result</p>
+          <div class="space-y-3" id="shap-bars"></div>
+        </div>
+
+        <!-- AI Explanation -->
+        <div class="bg-[#060d20] border border-[#8aebff]/15 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1;font-size:18px">smart_toy</span>
+            <span class="text-[9px] font-bold uppercase tracking-widest text-[#8aebff]">AI Health Summary</span>
+          </div>
+          <p class="text-sm text-[#dbe2fd] leading-relaxed" id="narrative-text">—</p>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="bg-[#171f33] p-5">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-[#bbc9cd] mb-3">Recommended Next Steps</p>
+          <div id="next-steps" class="space-y-2"></div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="bg-[#93000a]/10 border border-[#ffb4ab]/15 p-4 flex items-start gap-3">
+          <span class="ms text-[#ffb4ab] mt-0.5" style="font-variation-settings:'FILL' 1">warning</span>
+          <p class="text-[10px] text-[#ffb4ab] leading-relaxed">This is <strong>not a medical diagnosis</strong>. These results are for informational purposes only. Please consult a qualified doctor before making any health decisions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ UPLOAD DOCUMENTS ═══════════ -->
+<div id="page-upload" class="page p-6 space-y-6">
+  <div class="border-b border-[#3c494c]/15 pb-4">
+    <h2 class="text-2xl font-black tracking-tighter">Upload Medical Documents</h2>
+    <p class="text-xs text-[#bbc9cd] mt-0.5">Upload your lab reports, CT scans, ECG results, or any medical document — our AI will read it and extract your health data automatically</p>
+  </div>
+
+  <!-- Supported Formats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-[#131b2e] p-4 flex items-center gap-3">
+      <span class="ms text-[#ffb4ab]" style="font-variation-settings:'FILL' 1">picture_as_pdf</span>
+      <div><p class="text-xs font-bold">PDF Reports</p><p class="text-[9px] text-[#bbc9cd]">Lab results, discharge summaries</p></div>
+    </div>
+    <div class="bg-[#131b2e] p-4 flex items-center gap-3">
+      <span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1">radiology</span>
+      <div><p class="text-xs font-bold">CT / X-Ray</p><p class="text-[9px] text-[#bbc9cd]">Scan images (JPG, PNG)</p></div>
+    </div>
+    <div class="bg-[#131b2e] p-4 flex items-center gap-3">
+      <span class="ms text-[#ffc640]" style="font-variation-settings:'FILL' 1">monitor_heart</span>
+      <div><p class="text-xs font-bold">ECG Reports</p><p class="text-[9px] text-[#bbc9cd]">Heart rhythm printouts</p></div>
+    </div>
+    <div class="bg-[#131b2e] p-4 flex items-center gap-3">
+      <span class="ms text-[#4ade80]" style="font-variation-settings:'FILL' 1">science</span>
+      <div><p class="text-xs font-bold">Blood Tests</p><p class="text-[9px] text-[#bbc9cd]">Any lab report image</p></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-6">
+    <!-- Upload Zone -->
+    <div class="col-span-12 lg:col-span-5 space-y-4">
+      <!-- Drop Zone -->
+      <div id="drop-zone" class="drop-zone bg-[#131b2e] p-10 flex flex-col items-center justify-center text-center" style="min-height:220px"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <span class="ms text-4xl text-[#3c494c] mb-3" style="font-variation-settings:'FILL' 1">cloud_upload</span>
+        <p class="text-sm font-bold text-[#bbc9cd]">Drop your document here</p>
+        <p class="text-[10px] text-[#3c494c] mt-1">or click to browse files</p>
+        <p class="text-[9px] text-[#3c494c] mt-3">PDF, JPG, PNG, WEBP · Max 10MB</p>
+        <input type="file" id="file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp" onchange="handleFileSelect(event)"/>
+      </div>
+
+      <!-- Selected File Preview -->
+      <div id="file-preview" class="hidden bg-[#171f33] p-4 flex items-center gap-3">
+        <span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1" id="file-icon">description</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-[#dbe2fd] truncate" id="file-name">—</p>
+          <p class="text-[9px] text-[#bbc9cd]" id="file-size">—</p>
+        </div>
+        <button onclick="clearFile()" class="text-[#bbc9cd] hover:text-[#ffb4ab] transition-colors">
+          <span class="ms text-base">close</span>
+        </button>
+      </div>
+
+      <!-- Disease selector for upload -->
+      <div class="bg-[#171f33] p-4">
+        <label class="text-[9px] uppercase tracking-widest text-[#bbc9cd] block mb-2">What should we check for?</label>
+        <div class="flex gap-2">
+          <button onclick="setUploadDisease('heart_disease')" id="up-btn-heart" class="flex-1 py-2 text-[10px] font-bold uppercase vg text-[#00363e]">❤️ Heart Disease</button>
+          <button onclick="setUploadDisease('diabetes')" id="up-btn-diab" class="flex-1 py-2 text-[10px] font-bold uppercase border border-[#3c494c]/40 text-[#bbc9cd] hover:border-[#8aebff]/30 transition-colors">🩸 Diabetes</button>
+        </div>
+      </div>
+
+      <!-- Upload Error -->
+      <div id="upload-error" class="hidden bg-[#93000a]/20 border border-[#ffb4ab]/20 p-3 text-[11px] text-[#ffb4ab] leading-relaxed"></div>
+
+      <button onclick="processUpload()" id="upload-btn" class="w-full py-3.5 vg text-[#00363e] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+        <span class="ms text-base" id="upload-icon">auto_awesome</span>
+        <span id="upload-label">Extract & Analyze</span>
+      </button>
+    </div>
+
+    <!-- Extracted Data + Result -->
+    <div class="col-span-12 lg:col-span-7 space-y-4">
+      <!-- Placeholder -->
+      <div id="upload-placeholder" class="bg-[#171f33] flex flex-col items-center justify-center p-16 text-center" style="min-height:400px">
+        <span class="ms text-5xl text-[#3c494c] mb-4" style="font-variation-settings:'FILL' 1">upload_file</span>
+        <p class="text-sm font-bold text-[#bbc9cd]">Upload a document to get started</p>
+        <p class="text-[10px] text-[#3c494c] mt-2">Our AI will read your medical document and extract your health values automatically</p>
+      </div>
+
+      <!-- Extracted Fields -->
+      <div id="extracted-panel" class="hidden space-y-4 fade-in">
+        <div class="bg-[#171f33] p-5">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-[#8aebff]">AI Extracted Values</p>
+          </div>
+          <p class="text-[9px] text-[#bbc9cd] mb-4" id="doc-summary">—</p>
+          <div class="grid grid-cols-2 gap-3" id="extracted-fields"></div>
+          <div class="mt-4 pt-4 border-t border-[#3c494c]/20 flex gap-3">
+            <button onclick="useExtractedData()" class="flex-1 py-2.5 vg text-[#00363e] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1">
+              <span class="ms text-sm">health_metrics</span> Use These Values & Check Risk
+            </button>
+            <button onclick="nav('check')" class="px-4 py-2.5 border border-[#3c494c]/40 text-[#bbc9cd] font-bold text-xs uppercase tracking-wider hover:border-[#8aebff]/30 transition-colors">
+              Edit Manually
+            </button>
+          </div>
+        </div>
+
+        <!-- Instant Result from Upload -->
+        <div id="upload-result-card" class="hidden space-y-4 fade-in">
+          <div id="up-risk-banner" class="p-5 border-l-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="ms text-3xl" id="up-risk-icon" style="font-variation-settings:'FILL' 1">favorite</span>
+                <div>
+                  <p class="text-[9px] uppercase tracking-widest text-[#bbc9cd]">Your <span id="up-risk-disease">—</span> Risk</p>
+                  <p class="text-2xl font-black tracking-tighter" id="up-risk-label">—</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-[9px] text-[#bbc9cd]">Risk Score</p>
+                <p class="text-3xl font-black" id="up-risk-prob">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-[#060d20] border border-[#8aebff]/15 p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1;font-size:16px">smart_toy</span>
+              <span class="text-[9px] font-bold uppercase tracking-widest text-[#8aebff]">AI Health Summary</span>
+            </div>
+            <p class="text-sm text-[#dbe2fd] leading-relaxed" id="up-narrative">—</p>
+          </div>
+          <div class="bg-[#93000a]/10 border border-[#ffb4ab]/15 p-3 flex items-start gap-2">
+            <span class="ms text-[#ffb4ab] text-sm mt-0.5" style="font-variation-settings:'FILL' 1">warning</span>
+            <p class="text-[10px] text-[#ffb4ab] leading-relaxed">Not a medical diagnosis. Please consult a qualified doctor before making any health decisions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MY HISTORY ═══════════ -->
+<div id="page-history" class="page p-6 space-y-6">
+  <div class="flex justify-between items-end border-b border-[#3c494c]/15 pb-4">
+    <div>
+      <h2 class="text-2xl font-black tracking-tighter">My Health History</h2>
+      <p class="text-xs text-[#bbc9cd] mt-0.5">All your past health checks in one place</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="loadHistory('heart_disease')" id="hist-btn-heart" class="px-3 py-1.5 text-[10px] font-bold border border-[#8aebff]/20 text-[#8aebff] uppercase vg text-[#00363e]">❤️ Heart</button>
+      <button onclick="loadHistory('diabetes')" id="hist-btn-diab" class="px-3 py-1.5 text-[10px] font-bold border border-[#3c494c]/30 text-[#bbc9cd] uppercase hover:border-[#8aebff]/30 transition-colors">🩸 Diabetes</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-[#131b2e] p-4 text-center"><p class="text-2xl font-black text-[#8aebff]" id="hist-total">—</p><p class="text-[9px] text-[#bbc9cd] uppercase mt-1">Total Checks</p></div>
+    <div class="bg-[#131b2e] p-4 text-center"><p class="text-2xl font-black text-[#ffb4ab]" id="hist-high">—</p><p class="text-[9px] text-[#bbc9cd] uppercase mt-1">High Risk Results</p></div>
+    <div class="bg-[#131b2e] p-4 text-center"><p class="text-2xl font-black text-[#4ade80]" id="hist-low">—</p><p class="text-[9px] text-[#bbc9cd] uppercase mt-1">Low Risk Results</p></div>
+  </div>
+
+  <div class="bg-[#171f33] overflow-hidden">
+    <div class="p-4 bg-[#222a3e]"><h3 class="text-sm font-bold uppercase tracking-widest">Past Health Checks</h3></div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-[#131b2e] text-[9px] font-bold uppercase text-[#bbc9cd] border-b border-[#3c494c]/10">
+          <tr><th class="px-5 py-3">Reference ID</th><th class="px-5 py-3">Result</th><th class="px-5 py-3">Risk Level</th><th class="px-5 py-3">Risk Score</th><th class="px-5 py-3">Date & Time</th></tr>
+        </thead>
+        <tbody class="text-sm divide-y divide-[#3c494c]/10" id="hist-tbody">
+          <tr><td colspan="5" class="px-5 py-8 text-center text-[#bbc9cd] text-[10px]">Loading your history...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ABOUT ═══════════ -->
+<div id="page-about" class="page p-6 space-y-6">
+  <div class="border-b border-[#3c494c]/15 pb-4">
+    <h2 class="text-2xl font-black tracking-tighter">About HealthCheck AI</h2>
+    <p class="text-xs text-[#bbc9cd] mt-0.5">How this tool works and what it can (and can't) do</p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-[#171f33] p-6 space-y-4">
+      <div class="flex items-center gap-3"><span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1">psychology</span><h3 class="font-bold text-[#dbe2fd]">How the AI Works</h3></div>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">HealthCheck AI uses three machine learning models working together — Logistic Regression, Random Forest, and XGBoost — trained on real clinical datasets. The models are calibrated to give accurate probability scores, not just yes/no answers.</p>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">When you upload a document, our AI reads it and extracts your health values automatically using the <strong class="text-[#dbe2fd]">stepfun/step-3.5-flash</strong> language model.</p>
+    </div>
+    <div class="bg-[#171f33] p-6 space-y-4">
+      <div class="flex items-center gap-3"><span class="ms text-[#ffc640]" style="font-variation-settings:'FILL' 1">warning</span><h3 class="font-bold text-[#dbe2fd]">Important Limitations</h3></div>
+      <ul class="space-y-2 text-[11px] text-[#bbc9cd]">
+        <li class="flex items-start gap-2"><span class="ms text-[#ffb4ab] text-sm mt-0.5">close</span>This is NOT a medical diagnosis tool</li>
+        <li class="flex items-start gap-2"><span class="ms text-[#ffb4ab] text-sm mt-0.5">close</span>Results cannot replace a doctor's examination</li>
+        <li class="flex items-start gap-2"><span class="ms text-[#ffb4ab] text-sm mt-0.5">close</span>Do not make treatment decisions based on this tool</li>
+        <li class="flex items-start gap-2"><span class="ms text-[#4ade80] text-sm mt-0.5">check</span>Useful for understanding your risk level</li>
+        <li class="flex items-start gap-2"><span class="ms text-[#4ade80] text-sm mt-0.5">check</span>Good for preparing questions for your doctor</li>
+        <li class="flex items-start gap-2"><span class="ms text-[#4ade80] text-sm mt-0.5">check</span>Helps track changes in your health numbers over time</li>
+      </ul>
+    </div>
+    <div class="bg-[#171f33] p-6 space-y-4">
+      <div class="flex items-center gap-3"><span class="ms text-[#4ade80]" style="font-variation-settings:'FILL' 1">lock</span><h3 class="font-bold text-[#dbe2fd]">Your Privacy</h3></div>
+      <p class="text-[11px] text-[#bbc9cd] leading-relaxed">Your uploaded documents are processed in memory and never permanently stored. Health check results are saved locally with a random reference ID — no personal information is collected or shared.</p>
+    </div>
+    <div class="bg-[#171f33] p-6 space-y-4">
+      <div class="flex items-center gap-3"><span class="ms text-[#8aebff]" style="font-variation-settings:'FILL' 1">model_training</span><h3 class="font-bold text-[#dbe2fd]">AI Model Details</h3></div>
+      <div class="space-y-2 text-[11px]">
+        <div class="flex justify-between py-1 border-b border-[#3c494c]/20"><span class="text-[#bbc9cd]">Heart Disease Dataset</span><span class="text-[#dbe2fd] font-bold">UCI Heart Disease</span></div>
+        <div class="flex justify-between py-1 border-b border-[#3c494c]/20"><span class="text-[#bbc9cd]">Diabetes Dataset</span><span class="text-[#dbe2fd] font-bold">Pima Indians</span></div>
+        <div class="flex justify-between py-1 border-b border-[#3c494c]/20"><span class="text-[#bbc9cd]">Calibration</span><span class="text-[#dbe2fd] font-bold">Isotonic Regression</span></div>
+        <div class="flex justify-between py-1"><span class="text-[#bbc9cd]">AI Narrative</span><span class="text-[#dbe2fd] font-bold">stepfun/step-3.5-flash</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="fixed bottom-0 right-0 left-64 px-6 py-2 flex justify-between items-center bg-[#060d20] border-t border-[#3c494c]/15 text-[10px] text-[#bbc9cd] z-50">
+  <div class="flex items-center gap-3"><span class="font-bold text-[#8aebff]">HealthCheck AI</span><span>For informational use only — not a medical diagnosis tool</span></div>
+  <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-[#8aebff] rounded-full pulse"></span><span>Powered by Clinical Obsidian CDSS</span></div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
