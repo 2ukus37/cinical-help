@@ -16,6 +16,7 @@ load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "stepfun/step-3.5-flash")
+OPENROUTER_VISION_MODEL = os.getenv("OPENROUTER_VISION_MODEL", "google/gemini-3.1-flash-lite-preview")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 UPLOAD_DIR = Path("backend/uploads")
@@ -66,7 +67,8 @@ def parse_document_with_llm(text: str = "", image_b64: str = "", filename: str =
     messages = []
 
     if image_b64:
-        # Vision: send image directly
+        # Vision: use the vision-capable model (Gemini)
+        model_to_use = OPENROUTER_VISION_MODEL
         messages = [{
             "role": "user",
             "content": [
@@ -77,7 +79,8 @@ def parse_document_with_llm(text: str = "", image_b64: str = "", filename: str =
             ]
         }]
     elif text:
-        # Text: send extracted PDF text
+        # Text: use the standard reasoning model (stepfun)
+        model_to_use = OPENROUTER_MODEL
         messages = [{
             "role": "user",
             "content": f"{EXTRACT_PROMPT}\n\nDocument content:\n{text[:4000]}"
@@ -96,7 +99,7 @@ def parse_document_with_llm(text: str = "", image_b64: str = "", filename: str =
                     "X-Title": "Clinical Obsidian CDSS",
                 },
                 json={
-                    "model": OPENROUTER_MODEL,
+                    "model": model_to_use,
                     "messages": messages,
                     "max_tokens": 1024,
                     "temperature": 0.1,
@@ -159,6 +162,9 @@ def _regex_fallback(text: str) -> dict:
     if result:
         result['document_summary'] = 'Values extracted from medical document (regex)'
     return result
+
+
+def process_upload(file_bytes: bytes, filename: str, content_type: str) -> dict:
     """
     Main entry point: validate, extract text/image, parse with LLM.
     Returns extracted clinical fields ready for the prediction form.
@@ -176,10 +182,17 @@ def _regex_fallback(text: str) -> dict:
     if content_type == "application/pdf":
         text = extract_text_from_pdf(file_bytes)
         if not text:
+            # Try treating bytes as plain text (e.g. text-based reports saved as .pdf)
+            try:
+                text = file_bytes.decode("utf-8", errors="ignore").strip()
+            except Exception:
+                pass
+        if not text:
             return {"error": "Could not extract text from PDF. Try uploading an image instead.", "document_summary": "Empty PDF"}
         result = parse_document_with_llm(text=text, filename=filename)
-        # If LLM only returned summary, try regex fallback on the text
-        if len([k for k in result if k != 'document_summary' and k != 'error']) == 0:
+        # Use regex fallback if LLM failed or returned no clinical fields
+        clinical_keys = [k for k in result if k not in ('document_summary', 'error', 'raw')]
+        if not clinical_keys:
             fallback = _regex_fallback(text)
             if fallback:
                 return fallback

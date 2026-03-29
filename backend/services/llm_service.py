@@ -17,7 +17,6 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "stepfun/step-3.5-flash")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-
 SYSTEM_PROMPT = """You are a friendly health AI assistant helping patients understand their health risk assessment results.
 Your role is to explain ML prediction outputs in simple, caring language that a patient (not a doctor) can understand.
 
